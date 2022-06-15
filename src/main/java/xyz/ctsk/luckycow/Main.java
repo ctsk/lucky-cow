@@ -42,7 +42,13 @@ public class Main {
 
         Main main = new Main(beforeTemplate, afterTemplate);
 
-        Javalin app = Javalin.create().start(DEFAULT_PORT);
+        var port = DEFAULT_PORT;
+        var envPort = System.getenv("PORT");
+        if (envPort != null) {
+            port = Integer.parseInt(envPort);
+        }
+
+        Javalin app = Javalin.create().start(port);
         app.get("/", ctx -> ctx.html(main.runAndFormat(FORTUNE_COMMAND)));
     }
 }
