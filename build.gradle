@@ -1,0 +1,28 @@
+plugins {
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
+}
+
+group 'xyz.ctsk'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+
+    implementation 'io.javalin:javalin:4.3.0'
+    implementation 'org.slf4j:slf4j-simple:1.7.36'
+    implementation 'commons-io:commons-io:2.11.0'
+}
+
+application {
+    mainClass = 'xyz.ctsk.luckycow.Main'
+}
+
+test {
+    useJUnitPlatform()
+}
