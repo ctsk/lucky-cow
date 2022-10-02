@@ -1,15 +1,16 @@
 package xyz.ctsk.luckycow;
 
 import io.javalin.Javalin;
-import org.apache.commons.io.IOUtils;
+import io.javalin.http.ContentType;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import java.io.SequenceInputStream;
 
 public class Main {
-    private final String beforeTemplate;
-    private final String afterTemplate;
+    private final byte[] beforeTemplate;
+    private final byte[] afterTemplate;
 
     private static final String BEFORE_TEMPLATE_RES = "index-before.html";
     private static final String AFTER_TEMPLATE_RES = "index-after.html";
@@ -17,28 +18,34 @@ public class Main {
 
     private static final int DEFAULT_PORT = 7070;
 
-    private Main(String beforeTemplate, String afterTenplate) {
+    private Main(byte[] beforeTemplate, byte[] afterTemplate) {
         this.beforeTemplate = beforeTemplate;
-        this.afterTemplate = afterTenplate;
+        this.afterTemplate = afterTemplate;
     }
 
-    private String executeCommand(String[] command) throws IOException {
-        var process = Runtime.getRuntime().exec(command);
-        return IOUtils.toString(process.getInputStream(), StandardCharsets.UTF_8);
+    private InputStream run() throws IOException {
+        var process = Runtime.getRuntime().exec(FORTUNE_COMMAND);
+        return process.getInputStream();
     }
 
-    private String runAndFormat(String[] command) throws IOException {
-        return beforeTemplate + executeCommand(command) + afterTemplate;
+    private InputStream runAndFormat() throws IOException {
+        return new SequenceInputStream(
+                new ByteArrayInputStream(beforeTemplate),
+                new SequenceInputStream(
+                        run(),
+                        new ByteArrayInputStream(afterTemplate)));
     }
 
-    private static String resToString(String res) throws IOException {
-        var inputStream = Main.class.getClassLoader().getResourceAsStream(res);
-        return IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
+    private static byte[] resToBytes(String res) throws IOException {
+        try (var inputStream = Main.class.getClassLoader().getResourceAsStream(res)) {
+            assert inputStream != null;
+            return inputStream.readAllBytes();
+        }
     }
 
     public static void main(String[] args) throws IOException {
-        var beforeTemplate = Main.resToString(BEFORE_TEMPLATE_RES);
-        var afterTemplate = Main.resToString(AFTER_TEMPLATE_RES);
+        var beforeTemplate = Main.resToBytes(BEFORE_TEMPLATE_RES);
+        var afterTemplate = Main.resToBytes(AFTER_TEMPLATE_RES);
 
         Main main = new Main(beforeTemplate, afterTemplate);
 
@@ -48,7 +55,7 @@ public class Main {
             port = Integer.parseInt(envPort);
         }
 
-        Javalin app = Javalin.create().start(port);
-        app.get("/", ctx -> ctx.html(main.runAndFormat(FORTUNE_COMMAND)));
+        var app = Javalin.create().start(port);
+        app.get("/", ctx -> ctx.contentType(ContentType.HTML).result(main.runAndFormat()));
     }
 }
